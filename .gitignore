@@ -1,0 +1,17 @@
+# Node modules
+node_modules/
+
+# SQLite DB
+database.db
+
+# 환경 변수 파일
+.env
+
+# 로그 파일
+*.log
+
+# 기타 편집기 캐시
+.vscode/
+.idea/
+
+aviation-accident.csv
