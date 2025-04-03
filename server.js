@@ -3,6 +3,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const port = 3000;
@@ -24,6 +25,54 @@ app.get('/', (req, res) => {
   res.send('✈️ AeroCheck 서버 실행 중!');
 });
 
+// 회원 가입 엔드포인트
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'username과 password는 필수입니다.' });
+  }
+  bcrypt.hash(password, 10, (err, hashedPassword) => {
+    if (err) {
+      return res.status(500).json({ error: '비밀번호 해시화 중 오류 발생' });
+    }
+    const sql = "INSERT INTO users (username, password) VALUES (?, ?)";
+    db.run(sql, [username, hashedPassword], function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'DB 삽입 오류', details: err.message });
+      }
+      res.json({ message: '회원 가입 성공', userId: this.lastID });
+    });
+  });
+});
+
+// 로그인 엔드포인트
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'username과 password는 필수입니다.' });
+  }
+  const sql = "SELECT * FROM users WHERE username = ?";
+  db.get(sql, [username], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: 'DB 조회 오류', details: err.message });
+    }
+    if (!row) {
+      return res.status(401).json({ error: '잘못된 자격 증명입니다.' });
+    }
+    bcrypt.compare(password, row.password, (err, result) => {
+      if (err) {
+        return res.status(500).json({ error: '비밀번호 비교 중 오류 발생' });
+      }
+      if (result) {
+        res.json({ message: '로그인 성공', user: { id: row.id, username: row.username } });
+      } else {
+        res.status(401).json({ error: '잘못된 자격 증명입니다.' });
+      }
+    });
+  });
+});
+
+// 검색 엔드포인트
 app.get('/search', (req, res) => {
   const { type, country, minFatal, maxFatal, startYear, endYear, sort, page = 1, limit = 20 } = req.query;
   const conditions = ["fatalities GLOB '[0-9]*'"]; // Ensure fatalities is numeric
@@ -59,7 +108,11 @@ app.get('/search', (req, res) => {
     sql += ' WHERE ' + conditions.join(' AND ');
   }
 
-  if (sort === 'fatalities_asc') {
+  if (sort === 'year_asc') {
+    sql += ' ORDER BY year ASC';
+  } else if (sort === 'year_desc') {
+    sql += ' ORDER BY year DESC';
+  } else if (sort === 'fatalities_asc') {
     sql += ' ORDER BY CAST(fatalities AS INTEGER) ASC';
   } else if (sort === 'fatalities_desc') {
     sql += ' ORDER BY CAST(fatalities AS INTEGER) DESC';

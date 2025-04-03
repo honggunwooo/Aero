@@ -6,12 +6,8 @@
   <title>AeroCheck - 사고 이력 검색</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
   <style>
-    /* 기본 리셋 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* 기본 리셋 및 글로벌 스타일 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
       font-family: 'Roboto', sans-serif;
@@ -19,14 +15,84 @@
       color: #333;
       overflow: hidden;
     }
-    /* 전체 컨테이너 */
+    /* 인증 모달 스타일 */
+    .auth-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .auth-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .auth-box h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+    .auth-tab {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    .auth-tab button {
+      flex: 1;
+      padding: 10px;
+      background: #1e88e5;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .auth-tab button.active {
+      background: #1565c0;
+    }
+    .auth-form {
+      display: none;
+    }
+    .auth-form.active {
+      display: block;
+    }
+    .auth-form input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .auth-form button {
+      width: 100%;
+      padding: 10px;
+      background: #1e88e5;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .auth-form button:hover {
+      background: #1565c0;
+    }
+    .auth-message {
+      text-align: center;
+      margin-top: 10px;
+    }
+    /* 메인 컨테이너 스타일 */
     .container {
       display: flex;
       flex-direction: column;
       width: 100vw;
       height: 100vh;
     }
-    /* 헤더 */
     .header {
       background: linear-gradient(135deg, #1e88e5, #42a5f5);
       color: #fff;
@@ -35,13 +101,11 @@
       font-size: 1.5rem;
       flex: 0 0 auto;
     }
-    /* 콘텐츠 영역: 좌우 패널 */
     .content {
       display: flex;
       flex: 1;
       overflow: hidden;
     }
-    /* 좌측 패널: 검색 및 시각화 */
     .left-panel {
       width: 40%;
       background: #fff;
@@ -52,7 +116,6 @@
       gap: 1rem;
       overflow-y: auto;
     }
-    /* 검색폼 */
     .search-form {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -76,27 +139,25 @@
     .search-form button:hover {
       background-color: #1565c0;
     }
-    /* 시각화 영역: 여유 공간과 그림자 효과 추가 */
     .visualization {
-      flex: 1;
       background: #fff;
       padding: 1.5rem;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      gap: 1rem;
     }
     .visualization h2 {
-      margin-bottom: 1rem;
-      font-size: 1.4rem;
+      font-size: 1.2rem;
+      text-align: center;
     }
     .visualization canvas {
       width: 100%;
-      max-height: 300px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 4px;
     }
-    /* 우측 패널: 데이터 테이블 */
     .right-panel {
       width: 60%;
       background: #fff;
@@ -108,7 +169,8 @@
       border-collapse: collapse;
       margin-top: 1rem;
     }
-    .table-section th, .table-section td {
+    .table-section th,
+    .table-section td {
       padding: 0.75rem;
       border: 1px solid #eee;
       text-align: center;
@@ -137,7 +199,33 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
+  <!-- 인증 모달 -->
+  <div class="auth-container" id="authContainer">
+    <div class="auth-box">
+      <h1>AeroCheck</h1>
+      <div class="auth-tab">
+        <button id="authLoginTab" class="active">로그인</button>
+        <button id="authRegisterTab">회원가입</button>
+      </div>
+      <!-- 로그인 폼 -->
+      <form id="authLoginForm" class="auth-form active">
+        <input type="text" id="authLoginUsername" placeholder="아이디" required>
+        <input type="password" id="authLoginPassword" placeholder="비밀번호" required>
+        <button type="button" onclick="login()">로그인</button>
+        <div class="auth-message" id="authLoginMessage"></div>
+      </form>
+      <!-- 회원가입 폼 -->
+      <form id="authRegisterForm" class="auth-form">
+        <input type="text" id="authRegisterUsername" placeholder="아이디" required>
+        <input type="password" id="authRegisterPassword" placeholder="비밀번호" required>
+        <button type="button" onclick="register()">회원가입</button>
+        <div class="auth-message" id="authRegisterMessage"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 메인 컨테이너 (로그인 성공 후 표시) -->
+  <div class="container" id="mainContainer" style="display:none;">
     <div class="header">✈️ AeroCheck 사고 이력 검색</div>
     <div class="content">
       <div class="left-panel">
@@ -156,8 +244,16 @@
           <button onclick="searchAccident()">검색</button>
         </div>
         <div class="visualization" id="visualization">
-          <h2>사고 시각화</h2>
-          <canvas id="accidentChart"></canvas>
+          <h2>개별 사고 시각화</h2>
+          <canvas id="accidentChart" style="max-height:200px;"></canvas>
+          <h2>연도별 사고 건수</h2>
+          <canvas id="yearChart" style="max-height:200px;"></canvas>
+          <h2>국가별 사고 분포 (상위 5)</h2>
+          <canvas id="countryChart" style="max-height:200px;"></canvas>
+          <h2>운영사별 사고 건수 (상위 5)</h2>
+          <canvas id="operatorChart" style="max-height:200px;"></canvas>
+          <h2>사고 카테고리 분포</h2>
+          <canvas id="categoryChart" style="max-height:200px;"></canvas>
         </div>
       </div>
       <div class="right-panel">
@@ -167,9 +263,82 @@
       </div>
     </div>
   </div>
-  <script>
-    let accidentChart; // 차트 전역 변수
 
+  <script>
+    // 인증 탭 전환
+    const authLoginTab = document.getElementById('authLoginTab');
+    const authRegisterTab = document.getElementById('authRegisterTab');
+    const authLoginForm = document.getElementById('authLoginForm');
+    const authRegisterForm = document.getElementById('authRegisterForm');
+
+    authLoginTab.addEventListener('click', () => {
+      authLoginTab.classList.add('active');
+      authRegisterTab.classList.remove('active');
+      authLoginForm.classList.add('active');
+      authRegisterForm.classList.remove('active');
+    });
+
+    authRegisterTab.addEventListener('click', () => {
+      authRegisterTab.classList.add('active');
+      authLoginTab.classList.remove('active');
+      authRegisterForm.classList.add('active');
+      authLoginForm.classList.remove('active');
+    });
+
+    // 로그인 함수
+    function login() {
+      const username = document.getElementById('authLoginUsername').value;
+      const password = document.getElementById('authLoginPassword').value;
+
+      fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const messageDiv = document.getElementById('authLoginMessage');
+        if (data.error) {
+          messageDiv.textContent = data.error;
+          messageDiv.style.color = 'red';
+        } else {
+          messageDiv.textContent = data.message;
+          messageDiv.style.color = 'green';
+          // 로그인 성공 시 인증 모달 숨기고 메인 컨테이너 표시
+          document.getElementById('authContainer').style.display = 'none';
+          document.getElementById('mainContainer').style.display = 'flex';
+          // 초기 검색 실행
+          searchAccident();
+        }
+      })
+      .catch(err => console.error(err));
+    }
+
+    // 회원가입 함수
+    function register() {
+      const username = document.getElementById('authRegisterUsername').value;
+      const password = document.getElementById('authRegisterPassword').value;
+
+      fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const messageDiv = document.getElementById('authRegisterMessage');
+        if (data.error) {
+          messageDiv.textContent = data.error;
+          messageDiv.style.color = 'red';
+        } else {
+          messageDiv.textContent = data.message;
+          messageDiv.style.color = 'green';
+        }
+      })
+      .catch(err => console.error(err));
+    }
+
+    // 검색 함수: /search 엔드포인트 호출
     async function searchAccident() {
       const query = new URLSearchParams({
         type: document.getElementById('type').value,
@@ -192,6 +361,7 @@
           return;
         }
 
+        // 결과 테이블 생성
         const table = document.createElement('table');
         const header = '<tr><th>날짜</th><th>기종</th><th>등록번호</th><th>항공사</th><th>국가</th><th>사망자</th><th>연도</th><th>자세히 보기</th></tr>';
         const rows = data.map(row => `
@@ -208,17 +378,19 @@
         `).join('');
         table.innerHTML = header + rows;
         resultDiv.appendChild(table);
+
+        // 추가 차트 업데이트
+        updateAdditionalCharts();
       } catch (error) {
         console.error('검색 중 오류 발생:', error);
       }
     }
 
+    // 개별 사고 시각화: "자세히 보기" 버튼 클릭 시 업데이트
     function showVisualization(fatalities, date, type) {
       const ctx = document.getElementById('accidentChart').getContext('2d');
-      if (accidentChart) {
-        accidentChart.destroy();
-      }
-      accidentChart = new Chart(ctx, {
+      if (window.accidentChart) window.accidentChart.destroy();
+      window.accidentChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: ['사망자 수'],
@@ -233,13 +405,162 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          }
+          scales: { y: { beginAtZero: true } }
         }
       });
+    }
+
+    // 추가 시각화: 연도별, 국가별, 운영사별, 사고 카테고리 차트 업데이트
+    async function updateAdditionalCharts() {
+      // 연도별 사고 건수 업데이트 (line chart)
+      try {
+        const resYearly = await fetch('/chart/yearly');
+        const yearlyData = await resYearly.json();
+        const yearLabels = yearlyData.map(item => item.year).sort();
+        const yearCounts = yearLabels.map(year => {
+          const found = yearlyData.find(item => item.year === year);
+          return found ? found.count : 0;
+        });
+
+        const yearCtx = document.getElementById('yearChart').getContext('2d');
+        if (window.yearChart) window.yearChart.destroy();
+        window.yearChart = new Chart(yearCtx, {
+          type: 'line',
+          data: {
+            labels: yearLabels,
+            datasets: [{
+              label: '연도별 사고 건수',
+              data: yearCounts,
+              backgroundColor: 'rgba(255, 206, 86, 0.5)',
+              borderColor: 'rgba(255, 206, 86, 1)',
+              borderWidth: 1,
+              fill: true,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      } catch (error) {
+        console.error('연도별 차트 업데이트 오류:', error);
+      }
+
+      // 국가별 사고 분포 업데이트 (pie chart)
+      try {
+        const resCountry = await fetch('/chart/country');
+        const countryData = await resCountry.json();
+        const countryLabels = countryData.map(item => item.country);
+        const countryCounts = countryData.map(item => item.count);
+
+        const countryCtx = document.getElementById('countryChart').getContext('2d');
+        if (window.countryChart) window.countryChart.destroy();
+        window.countryChart = new Chart(countryCtx, {
+          type: 'pie',
+          data: {
+            labels: countryLabels,
+            datasets: [{
+              label: '국가별 사고 건수',
+              data: countryCounts,
+              backgroundColor: [
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)',
+                'rgba(255, 159, 64, 0.5)',
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)'
+              ],
+              borderColor: [
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      } catch (error) {
+        console.error('국가별 차트 업데이트 오류:', error);
+      }
+
+      // 운영사별 사고 건수 업데이트 (bar chart)
+      try {
+        const resOperator = await fetch('/chart/operator');
+        const operatorData = await resOperator.json();
+        const operatorLabels = operatorData.map(item => item.operator);
+        const operatorCounts = operatorData.map(item => item.count);
+
+        const operatorCtx = document.getElementById('operatorChart').getContext('2d');
+        if (window.operatorChart) window.operatorChart.destroy();
+        window.operatorChart = new Chart(operatorCtx, {
+          type: 'bar',
+          data: {
+            labels: operatorLabels,
+            datasets: [{
+              label: '운영사별 사고 건수',
+              data: operatorCounts,
+              backgroundColor: 'rgba(255, 99, 132, 0.5)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      } catch (error) {
+        console.error('운영사 차트 업데이트 오류:', error);
+      }
+
+      // 사고 카테고리 분포 업데이트 (doughnut chart)
+      try {
+        const resCategory = await fetch('/chart/category');
+        const categoryData = await resCategory.json();
+        const categoryLabels = categoryData.map(item => item.cat);
+        const categoryCounts = categoryData.map(item => item.count);
+
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        if (window.categoryChart) window.categoryChart.destroy();
+        window.categoryChart = new Chart(categoryCtx, {
+          type: 'doughnut',
+          data: {
+            labels: categoryLabels,
+            datasets: [{
+              label: '사고 카테고리 분포',
+              data: categoryCounts,
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 206, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)'
+              ],
+              borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false
+          }
+        });
+      } catch (error) {
+        console.error('카테고리 차트 업데이트 오류:', error);
+      }
     }
   </script>
 </body>

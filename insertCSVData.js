@@ -9,7 +9,7 @@ const CSV_FILE = path.join(__dirname, 'data', 'aviation-accident.csv');
 
 const db = new sqlite3.Database(DB_FILE);
 
-const createTableSQL = `
+const createAviationTableSQL = `
 CREATE TABLE IF NOT EXISTS aviation_accidents (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   date TEXT,
@@ -24,9 +24,25 @@ CREATE TABLE IF NOT EXISTS aviation_accidents (
 );
 `;
 
-db.run(createTableSQL, (err) => {
-  if (err) return console.error('❌ 테이블 생성 실패:', err.message);
-  console.log('✅ 테이블 생성 완료');
+const createUserTableSQL = `
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE,
+  password TEXT
+);
+`;
+
+// 두 테이블을 순차적으로 생성한 후 CSV 데이터를 로드
+db.serialize(() => {
+  db.run(createAviationTableSQL, (err) => {
+    if (err) return console.error('❌ aviation_accidents 테이블 생성 실패:', err.message);
+    console.log('✅ aviation_accidents 테이블 생성 완료');
+  });
+  db.run(createUserTableSQL, (err) => {
+    if (err) return console.error('❌ users 테이블 생성 실패:', err.message);
+    console.log('✅ users 테이블 생성 완료');
+  });
+  // 테이블 생성 후 CSV 데이터 로드 시작
   loadCSV();
 });
 
