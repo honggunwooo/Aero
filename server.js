@@ -74,7 +74,7 @@ app.post('/login', (req, res) => {
 
 // 검색 엔드포인트
 app.get('/search', (req, res) => {
-  const { type, country, minFatal, maxFatal, startYear, endYear, sort, page = 1, limit = 20 } = req.query;
+  const { type, country, operator, minFatal, maxFatal, startYear, endYear, sort, page = 1, limit = 20 } = req.query;
   const conditions = ["fatalities GLOB '[0-9]*'"]; // Ensure fatalities is numeric
   const values = [];
 
@@ -85,6 +85,10 @@ app.get('/search', (req, res) => {
   if (country) {
     conditions.push('country LIKE ?');
     values.push(`%${country}%`);
+  }
+  if (operator) {
+    conditions.push('operator LIKE ?');
+    values.push(`%${operator}%`);
   }
   if (minFatal) {
     conditions.push('CAST(fatalities AS INTEGER) >= ?');
@@ -132,6 +136,7 @@ app.get('/search', (req, res) => {
   });
 });
 
+// 연도 범위 조회 엔드포인트
 app.get('/year-range', (req, res) => {
   const sql = `SELECT MIN(year) AS startYear, MAX(year) AS endYear FROM aviation_accidents WHERE year != 'unknown'`;
   db.get(sql, [], (err, row) => {
@@ -139,6 +144,17 @@ app.get('/year-range', (req, res) => {
       return res.status(500).json({ error: '연도 조회 실패', details: err.message });
     }
     res.json(row);
+  });
+});
+
+// 항공사 목록 엔드포인트 (고유 operator 목록 반환)
+app.get('/airlines', (req, res) => {
+  const sql = "SELECT DISTINCT operator FROM aviation_accidents WHERE operator IS NOT NULL ORDER BY operator ASC";
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: '항공사 목록 조회 실패', details: err.message });
+    }
+    res.json(rows);
   });
 });
 
