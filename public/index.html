@@ -5,11 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>AeroCheck - 사고 이력 검색</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Data Labels 플러그인 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
     <style>
-      /* 기본 리셋 */
+      :root {
+        --primary-color: #2E86C1;
+        --primary-hover: #21618C;
+        --accent-color: #F39C12;
+        --light-bg: #F4F6F7;
+        --white: #fff;
+        --text-color: #2C3E50;
+      }
       * {
         margin: 0;
         padding: 0;
@@ -19,197 +30,188 @@
       body {
         height: 100%;
         font-family: 'Roboto', sans-serif;
-        background-color: #f5f7fa;
-        color: #333;
-        overflow: hidden;
+        background-color: var(--light-bg);
+        color: var(--text-color);
       }
-      /* 전체 컨테이너 */
       .container {
         display: flex;
         flex-direction: column;
-        width: 100vw;
-        height: 100vh;
+        min-height: 100vh;
       }
-      /* 헤더 */
-      .header {
-        position: relative;
-        background: linear-gradient(135deg, #1e88e5, #42a5f5);
-        color: #fff;
-        padding: 1rem;
-        text-align: center;
-        font-size: 1.5rem;
-        flex: 0 0 auto;
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: var(--white);
+        padding: 1.2rem 2rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      header h1 {
+        font-size: 1.8rem;
+        color: var(--primary-color);
+        font-weight: 500;
       }
       #authBtn {
         position: absolute;
         right: 20px;
         top: 20px;
-        background: #fff;
-        color: #1e88e5;
+        background: var(--primary-color);
+        color: var(--white);
         border: none;
-        font-size: 0.9rem;
-        padding: 5px 10px;
-        border-radius: 4px;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
         cursor: pointer;
+        font-weight: 500;
+        transition: background 0.3s ease;
       }
-      /* 콘텐츠 영역: 좌우 패널 */
+      #authBtn:hover {
+        background: var(--primary-hover);
+      }
       .content {
-        display: flex;
         flex: 1;
-        overflow: hidden;
-      }
-      /* 좌측 패널: 검색, 항공사, 시각화 */
-      .left-panel {
-        width: 40%;
-        background: #fff;
-        padding: 1rem;
-        border-right: 1px solid #ddd;
         display: flex;
         flex-direction: column;
-        gap: 1rem;
-        overflow-y: auto;
+        overflow: auto;
+        padding: 1rem 0;
       }
-      /* 항공사 목록 영역 */
-      .airlines-section {
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-        background: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-      .airlines-header {
+      .search-container {
+        position: sticky;
+        top: 0;
+        background: var(--accent-color);
+        z-index: 10;
+        padding: 1rem 2rem 2rem;
+        border-bottom: 1px solid var(--primary-color);
+        box-shadow: 0 2px 4px rgba(46, 134, 193, 0.2);
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
-        cursor: pointer;
       }
-      .airlines-header h3 {
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
-      }
-      .toggle-btn {
-        font-size: 1rem;
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #1e88e5;
-      }
-      .airlines-section ul {
-        list-style: none;
-        padding-left: 0;
-      }
-      .airlines-section li {
-        padding: 0.3rem;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
-      }
-      .airlines-section li:hover {
-        background-color: #e0f0ff;
-      }
-      /* 검색폼 (개선된 디자인) */
-      .search-form {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        background-color: #fff;
-        padding: 1rem;
-        border: 1px solid #ddd;
+      .hero-image {
+        width: 100%;
+        max-width: 600px;
         border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+        margin-bottom: 1rem;
+      }
+      .search-desc {
+        font-size: 1rem;
+        color: var(--white);
+        text-align: center;
+        margin-bottom: 0.8rem;
+      }
+      /* 검색폼을 form 태그로 변경 (검색 폼에서만 엔터키 작동) */
+      .search-form {
+        display: flex;
+        align-items: center;
+        max-width: 1000px;
+        width: 100%;
+        background: var(--white);
+        padding: 0.8rem 1rem;
+        border-radius: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
       }
       .search-form .form-group {
+        flex: 1;
+        margin-right: 0.8rem;
+        min-width: 80px;
         display: flex;
-        flex-direction: column;
-      }
-      .search-form label {
-        font-size: 0.9rem;
-        margin-bottom: 0.3rem;
-        color: #555;
+        align-items: center;
       }
       .search-form input,
       .search-form select {
-        padding: 0.5rem;
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 0.6rem;
         font-size: 1rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        color: var(--text-color);
+      }
+      .search-form input:focus,
+      .search-form select:focus {
+        outline: none;
       }
       .search-form button {
-        grid-column: 1 / -1;
-        padding: 0.7rem;
-        font-size: 1rem;
+        background: var(--primary-color);
         border: none;
-        border-radius: 4px;
-        background-color: #1e88e5;
-        color: #fff;
+        color: var(--white);
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+        border-radius: 30px;
         cursor: pointer;
         transition: background 0.3s ease;
       }
       .search-form button:hover {
-        background-color: #1565c0;
+        background: var(--primary-hover);
       }
-      /* 통계 영역 */
-      .stats-section {
-        padding: 0.5rem;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        margin-bottom: 1rem;
+      .data-container {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1.5rem 2rem;
       }
-      .stats-section p {
-        font-size: 0.95rem;
-        margin-bottom: 0.3rem;
-      }
-      /* 시각화 탭 메뉴 (개별 사고 차트와 데이터 비교 차트) */
       .viz-tabs {
         display: flex;
         justify-content: center;
-        margin-bottom: 1rem;
+        margin: 1.5rem 0;
       }
       .viz-tabs button {
-        padding: 0.5rem 1rem;
+        padding: 0.8rem 1.4rem;
         margin: 0 0.5rem;
         border: none;
-        border-radius: 4px;
-        background-color: #e0e0e0;
+        border-radius: 6px;
+        background-color: var(--light-bg);
         cursor: pointer;
+        font-size: 1rem;
         transition: background 0.3s;
       }
       .viz-tabs button.active {
-        background-color: #1e88e5;
-        color: #fff;
+        background-color: var(--primary-color);
+        color: var(--white);
       }
-      /* 시각화 영역 */
       .visualization {
-        flex: 1;
-        background: #fff;
         padding: 1.5rem;
+        background: var(--white);
+        border: 1px solid #dee2e6;
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        margin-bottom: 1.5rem;
       }
       .chart-container {
-        position: relative;
         width: 100%;
         height: 300px;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
       }
       .visualization canvas {
         width: 100%;
         max-height: 300px;
       }
-      /* 데이터 비교 차트 영역 */
-      #comparisonChartContainer {
-        width: 100%;
-        height: 300px;
+      .chart-explanation {
+        font-size: 1rem;
+        color: var(--text-color);
+        text-align: center;
+        margin-bottom: 1rem;
       }
-      /* 우측 패널: 데이터 테이블 */
-      .right-panel {
-        width: 60%;
-        background: #fff;
+      .report-container {
+        width: 100%;
+        padding: 1.5rem;
+        background: var(--white);
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        display: none;
+      }
+      .table-section {
+        background: var(--white);
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
         padding: 1rem;
+        max-height: 300px;
         overflow-y: auto;
       }
       .table-section table {
@@ -219,30 +221,31 @@
       }
       .table-section th,
       .table-section td {
-        padding: 0.75rem;
-        border: 1px solid #eee;
+        padding: 0.8rem;
+        border: 1px solid #dee2e6;
         text-align: center;
+        font-size: 0.95rem;
       }
       .table-section th {
-        background: #f0f0f0;
+        background: var(--primary-color);
+        color: var(--white);
       }
       .table-section tr:nth-child(even) {
-        background: #fafafa;
+        background: #f7f7f7;
       }
       .table-section button {
         padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
         border: none;
         border-radius: 4px;
-        background-color: #42a5f5;
-        color: #fff;
+        background: var(--primary-color);
+        color: var(--white);
         cursor: pointer;
-        transition: background 0.3s ease;
+        transition: background 0.3s;
       }
       .table-section button:hover {
-        background-color: #1e88e5;
+        background: var(--primary-hover);
       }
-      /* 모달 (로그인/회원가입) */
       .modal {
         display: none;
         position: fixed;
@@ -251,44 +254,41 @@
         top: 0;
         width: 100%;
         height: 100%;
-        overflow: auto;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(46,134,193,0.2);
+        justify-content: center;
+        align-items: center;
       }
       .modal-content {
-        background: #fff;
-        margin: 10% auto;
-        padding: 20px;
+        background: var(--white);
+        padding: 1.5rem;
         border-radius: 8px;
         width: 90%;
         max-width: 400px;
         position: relative;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
       .modal .close {
         position: absolute;
         right: 10px;
         top: 10px;
-        color: #aaa;
-        font-size: 28px;
-        font-weight: bold;
+        font-size: 1.8rem;
+        color: var(--text-color);
         cursor: pointer;
-      }
-      .modal .close:hover {
-        color: black;
       }
       .modal .tab {
         display: flex;
-        margin-bottom: 10px;
+        margin-bottom: 1rem;
       }
       .modal .tab button {
         flex: 1;
-        padding: 10px;
-        background: #1e88e5;
-        color: #fff;
+        padding: 0.8rem;
+        background: var(--primary-color);
+        color: var(--white);
         border: none;
         cursor: pointer;
       }
       .modal .tab button.active {
-        background: #1565c0;
+        background: var(--primary-hover);
       }
       .modal form {
         display: none;
@@ -298,110 +298,96 @@
       }
       .modal form input {
         width: 100%;
-        padding: 10px;
-        margin-bottom: 10px;
-        border: 1px solid #ccc;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        border: 1px solid #ced4da;
         border-radius: 4px;
       }
       .modal form button {
         width: 100%;
-        padding: 10px;
-        background: #1e88e5;
-        color: #fff;
+        padding: 0.8rem;
+        background: var(--primary-color);
+        color: var(--white);
         border: none;
         border-radius: 4px;
         cursor: pointer;
       }
       .modal .message {
         text-align: center;
-        margin-top: 10px;
+        margin-top: 0.8rem;
+        font-size: 0.95rem;
       }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <div class="container">
-      <div class="header">
-        ✈️ AeroCheck 사고 이력 검색
+      <header>
+        <h1>AeroCheck 사고 이력 검색</h1>
         <button id="authBtn">로그인/회원가입</button>
-      </div>
+      </header>
       <div class="content">
-        <div class="left-panel">
-          <!-- 항공사 목록 영역 -->
-          <div class="airlines-section">
-            <div class="airlines-header" onclick="toggleAirlines()">
-              <h3>항공사 목록</h3>
-              <button class="toggle-btn" id="toggleBtn">▼</button>
-            </div>
-            <ul id="airlineList"></ul>
-          </div>
-          <!-- 검색 폼 (개선된 디자인) -->
-          <div class="search-form">
+        <div class="search-container">
+          <!-- hero 이미지는 필요에 따라 주석 처리 -->
+          <!-- <img src="/travel.png" alt="Travel" class="hero-image" /> -->
+          <p class="search-desc">
+            항공 사고 이력을 검색하려면, 기종, 국가, 연도 등 정보를 입력하세요.
+          </p>
+          <!-- 검색 폼은 form 태그를 사용하여 엔터키 제출 시 검색만 작동 -->
+          <form class="search-form" id="searchForm">
             <div class="form-group">
-              <label for="type">기종</label>
-              <input id="type" placeholder="예: Boeing" />
+              <input id="type" placeholder="기종 (예: Boeing)" />
             </div>
             <div class="form-group">
-              <label for="country">국가</label>
-              <input id="country" placeholder="예: USA" />
+              <input id="country" placeholder="국가 (예: USA)" />
             </div>
             <div class="form-group">
-              <label for="startYear">시작 연도</label>
-              <input id="startYear" type="number" placeholder="예: 2000" />
+              <input id="startYear" type="number" placeholder="시작 연도 (예: 2000)" />
             </div>
             <div class="form-group">
-              <label for="endYear">종료 연도</label>
-              <input id="endYear" type="number" placeholder="예: 2020" />
+              <input id="endYear" type="number" placeholder="종료 연도 (예: 2020)" />
             </div>
             <div class="form-group">
-              <label for="sort">정렬</label>
               <select id="sort">
                 <option value="">정렬 없음</option>
                 <option value="year_asc">연도 오름차순</option>
                 <option value="year_desc">연도 내림차순</option>
               </select>
             </div>
-            <!-- 숨김 필드: operator -->
             <input id="operator" type="hidden" />
             <div class="form-group">
-              <label for="page">페이지</label>
-              <input id="page" type="number" placeholder="1" value="1" />
+              <input id="page" type="number" placeholder="페이지" value="1" />
             </div>
             <div class="form-group">
-              <label for="limit">건수</label>
-              <input id="limit" type="number" placeholder="20" value="20" />
+              <input id="limit" type="number" placeholder="건수" value="10" />
             </div>
-            <button onclick="searchAccident()">검색</button>
-          </div>
-          <!-- 통계 영역 -->
-          <div class="stats-section" id="stats"></div>
-          <!-- 시각화 탭 메뉴 (개별 사고 차트와 데이터 비교 차트) -->
+            <button type="submit">검색</button>
+          </form>
+        </div>
+        <div class="data-container" id="dataContainer">
           <div class="viz-tabs">
-            <button id="detailTab" class="active" onclick="switchChart('detail')">
-              개별 사고
-            </button>
-            <button id="comparisonTab" onclick="switchChart('comparison')">
-              데이터 비교
-            </button>
+            <button id="detailTab" class="active" onclick="switchChart('detail')">개별 사고</button>
+            <button id="comparisonTab" onclick="switchChart('comparison')">항공사 비교</button>
+            <button id="countryTab" onclick="switchChart('country')">국가별 사고</button>
+            <button id="reportTab" onclick="switchChart('report')">리포트</button>
           </div>
           <div class="visualization" id="visualization">
-            <!-- 개별 사고 차트 -->
+            <div class="chart-explanation" id="chartExplanation"></div>
             <div class="chart-container" id="detailChartContainer">
               <canvas id="accidentChart"></canvas>
             </div>
-            <!-- 데이터 비교 차트 (그룹 바 차트) -->
             <div class="chart-container" id="comparisonChartContainer" style="display: none;">
               <canvas id="comparisonChart"></canvas>
             </div>
+            <div class="chart-container" id="countryChartContainer" style="display: none;">
+              <canvas id="countryChart"></canvas>
+            </div>
+            <div class="report-container" id="reportContainer" style="display: none;"></div>
           </div>
-        </div>
-        <div class="right-panel">
           <div class="table-section" id="result"></div>
         </div>
       </div>
     </div>
-
-    <!-- 로그인/회원가입 모달 -->
+    
     <div id="authModal" class="modal">
       <div class="modal-content">
         <span class="close">&times;</span>
@@ -409,12 +395,14 @@
           <button id="loginTab" class="active">로그인</button>
           <button id="registerTab">회원가입</button>
         </div>
+        <!-- 로그인 폼: submit 이벤트 없이 버튼 클릭 시 login() 실행 -->
         <form id="loginForm" class="active">
           <input type="text" id="loginUsername" placeholder="아이디" required />
           <input type="password" id="loginPassword" placeholder="비밀번호" required />
           <button type="button" onclick="login()">로그인</button>
           <div class="message" id="loginMessage"></div>
         </form>
+        <!-- 회원가입 폼: submit 이벤트 없이 버튼 클릭 시 register() 실행 -->
         <form id="registerForm">
           <input type="text" id="registerUsername" placeholder="아이디" required />
           <input type="password" id="registerPassword" placeholder="비밀번호" required />
@@ -423,41 +411,62 @@
         </form>
       </div>
     </div>
-
+    
     <script>
       let accidentChart;
       let comparisonChart;
-
-      // 항공사 목록 접기/펼치기
-      function toggleAirlines() {
-        const airlineList = document.getElementById("airlineList");
-        const toggleBtn = document.getElementById("toggleBtn");
-        if (
-          airlineList.style.display === "none" ||
-          airlineList.style.display === ""
-        ) {
-          airlineList.style.display = "block";
-          toggleBtn.textContent = "▼";
-        } else {
-          airlineList.style.display = "none";
-          toggleBtn.textContent = "▲";
+      let countryChart;
+      
+      let currentPage = 1;
+      let isLoading = false;
+      let latestData = [];
+      
+      function switchChart(chartType) {
+        const detailContainer = document.getElementById("detailChartContainer");
+        const compContainer = document.getElementById("comparisonChartContainer");
+        const countryContainer = document.getElementById("countryChartContainer");
+        const reportContainer = document.getElementById("reportContainer");
+        const detailTab = document.getElementById("detailTab");
+        const compTab = document.getElementById("comparisonTab");
+        const countryTab = document.getElementById("countryTab");
+        const reportTab = document.getElementById("reportTab");
+        const explanation = document.getElementById("chartExplanation");
+        
+        detailContainer.style.display = "none";
+        compContainer.style.display = "none";
+        countryContainer.style.display = "none";
+        reportContainer.style.display = "none";
+        detailTab.classList.remove("active");
+        compTab.classList.remove("active");
+        countryTab.classList.remove("active");
+        reportTab.classList.remove("active");
+        
+        if (chartType === "detail") {
+          detailContainer.style.display = "block";
+          detailTab.classList.add("active");
+          explanation.innerHTML = "선택한 사고의 사망자 수를 보여줍니다.";
+        } else if (chartType === "comparison") {
+          compContainer.style.display = "block";
+          compTab.classList.add("active");
+          explanation.innerHTML = "각 항공사별 사고 건수와 사망자 수를 비교합니다.";
+        } else if (chartType === "country") {
+          countryContainer.style.display = "block";
+          countryTab.classList.add("active");
+          explanation.innerHTML = "각 국가별 사고 건수를 집계하여 비교합니다.";
+        } else if (chartType === "report") {
+          reportContainer.style.display = "block";
+          reportTab.classList.add("active");
+          explanation.innerHTML = "검색 결과에 대한 종합 리포트입니다.";
+          reportContainer.innerHTML = generateReport(latestData);
         }
       }
-
-      // 검색 결과 데이터에서 통계 계산
+      
       function computeStatistics(data) {
         const total = data.length;
-        const totalFatalities = data.reduce(
-          (sum, row) => sum + (parseInt(row.fatalities) || 0),
-          0
-        );
+        const totalFatalities = data.reduce((sum, row) => sum + (parseInt(row.fatalities) || 0), 0);
         const avgFatalities = total ? (totalFatalities / total).toFixed(1) : 0;
-        const maxFatalities = Math.max(
-          ...data.map((row) => parseInt(row.fatalities) || 0)
-        );
-        const minFatalities = Math.min(
-          ...data.map((row) => (parseInt(row.fatalities) || Infinity))
-        );
+        const maxFatalities = Math.max(...data.map((row) => parseInt(row.fatalities) || 0));
+        const minFatalities = Math.min(...data.map((row) => (parseInt(row.fatalities) || Infinity)));
         return {
           total,
           totalFatalities,
@@ -466,21 +475,30 @@
           minFatalities: minFatalities === Infinity ? 0 : minFatalities,
         };
       }
-
-      // 통계 결과 표시
-      function displayStatistics(stats) {
-        const statsDiv = document.getElementById("stats");
-        statsDiv.innerHTML = `
-          <p><strong>전체 사고 건수:</strong> ${stats.total}</p>
-          <p><strong>사망자 총합:</strong> ${stats.totalFatalities}</p>
-          <p><strong>평균 사망자 수:</strong> ${stats.avgFatalities}</p>
-          <p><strong>최대 사망자 수:</strong> ${stats.maxFatalities}</p>
-          <p><strong>최소 사망자 수:</strong> ${stats.minFatalities}</p>
-        `;
+      
+      function generateReport(data) {
+        const stats = computeStatistics(data);
+        let report = `<h3>종합 리포트</h3>`;
+        report += `<p>전체 사고 건수: ${stats.total}</p>`;
+        report += `<p>사망자 총합: ${stats.totalFatalities}</p>`;
+        report += `<p>평균 사망자 수: ${stats.avgFatalities}</p>`;
+        report += `<p>최대 사망자 수: ${stats.maxFatalities}</p>`;
+        report += `<p>최소 사망자 수: ${stats.minFatalities}</p>`;
+        return report;
       }
-
-      // 검색 폼의 값과 숨김 필드 operator 포함하여 검색 및 통계, 차트 업데이트
-      async function searchAccident() {
+      
+      async function searchAccident(reset = false) {
+        if (isLoading) return;
+        isLoading = true;
+        if (reset) {
+          currentPage = 1;
+          latestData = [];
+          document.getElementById("result").innerHTML = "";
+          const existingTable = document.getElementById("resultTable");
+          if (existingTable) {
+            existingTable.remove();
+          }
+        }
         const query = new URLSearchParams({
           type: document.getElementById("type").value,
           country: document.getElementById("country").value,
@@ -488,39 +506,38 @@
           startYear: document.getElementById("startYear").value,
           endYear: document.getElementById("endYear").value,
           sort: document.getElementById("sort").value,
-          page: document.getElementById("page").value || 1,
-          limit: document.getElementById("limit").value || 20,
+          page: currentPage,
+          limit: document.getElementById("limit").value || 10,
         });
         try {
           const res = await fetch(`/search?${query.toString()}`);
           const data = await res.json();
-
-          // 통계 계산 및 표시
-          const stats = computeStatistics(data);
-          displayStatistics(stats);
-
-          // 검색 결과 테이블 업데이트
+          latestData = latestData.concat(data);
+      
           const resultDiv = document.getElementById("result");
-          resultDiv.innerHTML = "";
-          if (!Array.isArray(data) || data.length === 0) {
-            resultDiv.innerHTML = "<p>검색 결과가 없습니다.</p>";
-            return;
+          let table;
+          if (currentPage === 1) {
+            table = document.createElement("table");
+            table.id = "resultTable";
+            const header = `
+              <tr>
+                <th>날짜</th>
+                <th>기종</th>
+                <th>등록번호</th>
+                <th>항공사</th>
+                <th>국가</th>
+                <th>사망자</th>
+                <th>연도</th>
+                <th>자세히 보기</th>
+              </tr>`;
+            table.innerHTML = header;
+            resultDiv.appendChild(table);
+          } else {
+            table = document.getElementById("resultTable");
           }
-          const table = document.createElement("table");
-          const header = `<tr>
-            <th>날짜</th>
-            <th>기종</th>
-            <th>등록번호</th>
-            <th>항공사</th>
-            <th>국가</th>
-            <th>사망자</th>
-            <th>연도</th>
-            <th>자세히 보기</th>
-          </tr>`;
-          const rows = data
-            .map(
-              (row) => `
-            <tr>
+          data.forEach(row => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
               <td>${row.date}</td>
               <td>${row.type}</td>
               <td>${row.registration}</td>
@@ -528,32 +545,28 @@
               <td>${row.country}</td>
               <td>${row.fatalities || 0}</td>
               <td>${row.year}</td>
-              <td>
-                <button onclick="showDetailChart(${row.fatalities}, '${row.date}', '${row.type}')">
-                  자세히 보기
-                </button>
-              </td>
-            </tr>
-          `
-            )
-            .join("");
-          table.innerHTML = header + rows;
-          resultDiv.appendChild(table);
-
-          // 개별 사고 차트 업데이트 (검색 결과 중 첫 번째 항목 예시)
-          if (data.length > 0) {
+              <td><button onclick="showDetailChart(${row.fatalities}, '${row.date}', '${row.type}')">자세히 보기</button></td>
+            `;
+            table.appendChild(tr);
+          });
+      
+          if (currentPage === 1 && data.length > 0) {
             const first = data[0];
             showDetailChart(first.fatalities, first.date, first.type);
           }
-
-          // 데이터 비교 차트 업데이트 (각 항공사별 사고 건수와 사망자 수)
-          showComparisonChart(data);
+      
+          showComparisonChart(latestData);
+          showCountryChart(latestData);
+          document.getElementById("reportContainer").innerHTML = generateReport(latestData);
+      
+          currentPage++;
         } catch (error) {
           console.error("검색 중 오류 발생:", error);
+        } finally {
+          isLoading = false;
         }
       }
-
-      // 개별 사고 차트 업데이트
+      
       function showDetailChart(fatalities, date, type) {
         const ctx = document.getElementById("accidentChart").getContext("2d");
         if (accidentChart) accidentChart.destroy();
@@ -565,25 +578,24 @@
               {
                 label: `${type} (${date})`,
                 data: [fatalities],
-                backgroundColor: "rgba(66,165,245,0.5)",
-                borderColor: "rgba(66,165,245,1)",
-                borderWidth: 1,
-              },
-            ],
+                backgroundColor: "rgba(46,134,193,0.6)",
+                borderColor: "rgba(46,134,193,1)",
+                borderWidth: 1
+              }
+            ]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true } },
-          },
+            scales: { y: { beginAtZero: true } }
+          }
         });
         switchChart("detail");
       }
-
-      // 데이터 비교 차트 (각 항공사별 사고 건수와 사망자 수)
+      
       function computeComparisonData(data) {
         const aggregation = {};
-        data.forEach((row) => {
+        data.forEach(row => {
           const op = row.operator || "Unknown";
           if (!aggregation[op]) {
             aggregation[op] = { accidents: 0, fatalities: 0 };
@@ -592,16 +604,14 @@
           aggregation[op].fatalities += parseInt(row.fatalities) || 0;
         });
         const labels = Object.keys(aggregation);
-        const accidentCounts = labels.map((label) => aggregation[label].accidents);
-        const fatalities = labels.map((label) => aggregation[label].fatalities);
+        const accidentCounts = labels.map(label => aggregation[label].accidents);
+        const fatalities = labels.map(label => aggregation[label].fatalities);
         return { labels, accidentCounts, fatalities };
       }
-
+      
       function showComparisonChart(data) {
         const compData = computeComparisonData(data);
-        const ctx = document
-          .getElementById("comparisonChart")
-          .getContext("2d");
+        const ctx = document.getElementById("comparisonChart").getContext("2d");
         if (comparisonChart) comparisonChart.destroy();
         comparisonChart = new Chart(ctx, {
           type: "bar",
@@ -611,84 +621,119 @@
               {
                 label: "사고 건수",
                 data: compData.accidentCounts,
-                backgroundColor: "rgba(66,165,245,0.5)",
-                borderColor: "rgba(66,165,245,1)",
-                borderWidth: 1,
+                backgroundColor: "rgba(46,134,193,0.6)",
+                borderColor: "rgba(46,134,193,1)",
+                borderWidth: 1
               },
               {
                 label: "사망자 수",
                 data: compData.fatalities,
-                backgroundColor: "rgba(244,67,54,0.5)",
-                borderColor: "rgba(244,67,54,1)",
-                borderWidth: 1,
-              },
-            ],
+                backgroundColor: "rgba(231,76,60,0.6)",
+                borderColor: "rgba(231,76,60,1)",
+                borderWidth: 1
+              }
+            ]
           },
           options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-              y: { beginAtZero: true },
+            scales: { 
+              x: { beginAtZero: true },
+              y: { beginAtZero: true }
             },
             plugins: {
               legend: { position: "top" },
               tooltip: {
                 callbacks: {
-                  label: (context) =>
-                    `${context.dataset.label}: ${context.parsed.y}`,
-                },
+                  label: ctx => `${ctx.dataset.label}: ${ctx.parsed.x}`
+                }
               },
-            },
-          },
+              datalabels: {
+                anchor: 'end',
+                align: 'end',
+                formatter: (value) => value,
+                color: "var(--text-color)"
+              }
+            }
+          }
         });
       }
-
-      // 탭 전환: "detail"은 개별 사고 차트, "comparison"은 데이터 비교 차트
-      function switchChart(chartType) {
-        const detailContainer = document.getElementById("detailChartContainer");
-        const compContainer = document.getElementById("comparisonChartContainer");
-        const detailTab = document.getElementById("detailTab");
-        const compTab = document.getElementById("comparisonTab");
-        if (chartType === "detail") {
-          detailContainer.style.display = "block";
-          compContainer.style.display = "none";
-          detailTab.classList.add("active");
-          if (compTab) compTab.classList.remove("active");
-        } else if (chartType === "comparison") {
-          detailContainer.style.display = "none";
-          compContainer.style.display = "block";
-          if (compTab) compTab.classList.add("active");
-          detailTab.classList.remove("active");
-        }
+      
+      function computeCountryData(data) {
+        const aggregation = {};
+        data.forEach(row => {
+          const country = row.country || "Unknown";
+          if (!aggregation[country]) {
+            aggregation[country] = { accidents: 0 };
+          }
+          aggregation[country].accidents++;
+        });
+        const labels = Object.keys(aggregation);
+        const accidentCounts = labels.map(label => aggregation[label].accidents);
+        return { labels, accidentCounts };
       }
-
+      
+      function showCountryChart(data) {
+        const countryData = computeCountryData(data);
+        const ctx = document.getElementById("countryChart").getContext("2d");
+        if (countryChart) countryChart.destroy();
+        countryChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: countryData.labels,
+            datasets: [
+              {
+                label: "사고 건수",
+                data: countryData.accidentCounts,
+                backgroundColor: "rgba(46,134,193,0.6)",
+                borderColor: "rgba(46,134,193,1)",
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { 
+              x: { beginAtZero: true },
+              y: { beginAtZero: true }
+            },
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${ctx.parsed.x}`
+                }
+              },
+              datalabels: {
+                anchor: 'end',
+                align: 'end',
+                formatter: (value) => value,
+                color: "var(--text-color)"
+              }
+            }
+          }
+        });
+      }
+      
       async function loadAirlines() {
         try {
           const res = await fetch("/airlines");
           const data = await res.json();
-          const airlineList = document.getElementById("airlineList");
-          airlineList.innerHTML = "";
-          data.forEach((item) => {
-            const li = document.createElement("li");
-            li.textContent = item.operator;
-            li.onclick = () => {
-              // 선택 시 숨김 필드(operator)에 값 설정 후 검색 실행
-              document.getElementById("operator").value = item.operator;
-              searchAccident();
-            };
-            airlineList.appendChild(li);
-          });
+          console.log("항공사 목록:", data);
         } catch (error) {
           console.error("항공사 목록 로드 오류:", error);
         }
       }
-
+      
       const authBtn = document.getElementById("authBtn");
       const authModal = document.getElementById("authModal");
       const closeModal = document.querySelector(".modal .close");
-
+      
       authBtn.addEventListener("click", () => {
-        authModal.style.display = "block";
+        authModal.style.display = "flex";
       });
       closeModal.addEventListener("click", () => {
         authModal.style.display = "none";
@@ -698,36 +743,35 @@
           authModal.style.display = "none";
         }
       });
-
+      
       const loginTab = document.getElementById("loginTab");
       const registerTab = document.getElementById("registerTab");
       const loginForm = document.getElementById("loginForm");
       const registerForm = document.getElementById("registerForm");
-
+      
       loginTab.addEventListener("click", () => {
         loginTab.classList.add("active");
         registerTab.classList.remove("active");
         loginForm.classList.add("active");
         registerForm.classList.remove("active");
       });
-
       registerTab.addEventListener("click", () => {
         registerTab.classList.add("active");
         loginTab.classList.remove("active");
         registerForm.classList.add("active");
         loginForm.classList.remove("active");
       });
-
+      
       function login() {
         const username = document.getElementById("loginUsername").value;
         const password = document.getElementById("loginPassword").value;
         fetch("/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password })
         })
-          .then((res) => res.json())
-          .then((data) => {
+          .then(res => res.json())
+          .then(data => {
             const messageDiv = document.getElementById("loginMessage");
             if (data.error) {
               messageDiv.textContent = data.error;
@@ -740,19 +784,19 @@
               }, 1000);
             }
           })
-          .catch((err) => console.error(err));
+          .catch(err => console.error(err));
       }
-
+      
       function register() {
         const username = document.getElementById("registerUsername").value;
         const password = document.getElementById("registerPassword").value;
         fetch("/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username, password })
         })
-          .then((res) => res.json())
-          .then((data) => {
+          .then(res => res.json())
+          .then(data => {
             const messageDiv = document.getElementById("registerMessage");
             if (data.error) {
               messageDiv.textContent = data.error;
@@ -762,13 +806,19 @@
               messageDiv.style.color = "green";
             }
           })
-          .catch((err) => console.error(err));
+          .catch(err => console.error(err));
       }
-
-      // 웹 접속 시 로그인 모달 자동 표시 및 항공사 목록 로드
+      
       document.addEventListener("DOMContentLoaded", () => {
-        authModal.style.display = "block";
+        authModal.style.display = "flex";
         loadAirlines();
+        // 검색폼에만 submit 이벤트 적용: 엔터키가 작동하여 검색
+        const searchForm = document.getElementById("searchForm");
+        searchForm.addEventListener("submit", function(e) {
+          e.preventDefault();
+          searchAccident(true);
+        });
+        // 로그인/회원가입 폼은 엔터키 작동 안 함 (버튼 클릭만)
       });
     </script>
   </body>
